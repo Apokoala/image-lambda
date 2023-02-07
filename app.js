@@ -1,21 +1,20 @@
-const AWS = require("aws-sdk");
-const s3 = new AWS.S3();
+import {S3Client, GetObjectCommand, PutObjectCommand} from '@aws-sdk/client-s3';
 
-exports.handler = async (event) => {
-  // Get the object from the S3 bucket
-  const response = await s3
+//gets the object from the s3 bucket
+export const handler = async (event) => {
+  const s3Client = new S3Client({region: "us-east-1"})
     .getObject({
-      Bucket: "your-bucket-name",
-      Key: "images.json",
-    })
-    .promise();
+      Bucket: "apokoala-imgaes",
+      Key: "summary.json",
+    });
 
   // Parse the JSON data
   let images = [];
   try {
-    images = JSON.parse(response.Body.toString());
+    images = await JSON.parse(s3Client.Body.toString());
   } catch (err) {
-    console.error(err);
+    console.error(err, "at images");
+    images = "[]";
   }
 
   // Add or update the image metadata
@@ -23,7 +22,6 @@ exports.handler = async (event) => {
     name: "image1",
     size: 100,
     type: "JPEG",
-    // ... other properties
   };
 
   let updated = false;
@@ -39,16 +37,17 @@ exports.handler = async (event) => {
   }
 
   // Upload the images.json file back to the S3 bucket
-  await s3
+  await s3Client
     .putObject({
-      Bucket: "your-bucket-name",
-      Key: "images.json",
+      Bucket: "apokoala-imgaes",
+      Key: "summary.json",
       Body: JSON.stringify(images),
+      ContentType: "application/json"
     })
     .promise();
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ message: "Image metadata added or updated" }),
+    body: JSON.stringify({ message: "Metadata has been updated" }),
   };
 };
